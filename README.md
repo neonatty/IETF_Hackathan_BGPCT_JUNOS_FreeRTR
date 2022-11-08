@@ -19,5 +19,5 @@ Logical:
  
   [ce1]-----[pe1]---p1-----[asbr11]------[asbr21]---p2-----[asbr22]---[asbr31]----p3---[pe2]-----[ce2]
 
-                (junos AS)                   (freeRtr AS)                  (junos AS)
+              (junos AS)                   (freeRtr AS)                  (junos AS)
  
