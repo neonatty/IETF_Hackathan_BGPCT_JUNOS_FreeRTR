@@ -1,0 +1,135 @@
+hostname freertr-asbr22
+buggy
+!
+!
+prefix-list p4
+ sequence 10 permit 0.0.0.0/0 ge 0 le 0
+ exit
+!
+prefix-list p6
+ sequence 10 permit ::/0 ge 0 le 0
+ exit
+!
+vrf definition v1
+ rd 1:1
+ label4mode per-prefix
+ label6mode per-prefix
+ exit
+!
+router isis4 1
+ vrf v1
+ net-id 48.3333.0000.3333.00
+ traffeng-id ::
+ is-type both
+ redistribute connected
+ exit
+!
+interface loopback0
+ vrf forwarding v1
+ ipv4 address 10.22.22.22 255.255.255.255
+ ipv6 address 4321::2 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 1 enable
+ router isis4 1 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet1
+ description p2-asbr22-1
+ vrf forwarding v1
+ ipv4 address 10.2.122.2 255.255.255.0
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 1 enable
+ router isis4 1 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet2
+ description p2-asbr22-2
+ vrf forwarding v1
+ ipv4 address 10.2.222.2 255.255.255.0
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet3
+ description asbr22-asbr31-1
+ vrf forwarding v1
+ ipv4 address 10.22.131.2 255.255.255.0
+ mpls enable
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet4
+ description asbr22-asbr31-2
+ vrf forwarding v1
+ ipv4 address 10.22.231.2 255.255.255.0
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet5
+ no shutdown
+ no log-link-change
+ exit
+!
+interface tunnel1
+ tunnel vrf v1
+ tunnel source loopback0
+ tunnel destination 10.21.21.21
+ tunnel mode p2pte
+ vrf forwarding v1
+ no shutdown
+ no log-link-change
+ exit
+!
+router bgp4 1
+ vrf v1
+ local-as 64512
+ router-id 10.22.22.22
+ no safe-ebgp
+ address-family unicast
+ neighbor 10.20.20.20 remote-as 64512
+ neighbor 10.20.20.20 local-as 64512
+ neighbor 10.20.20.20 address-family ctp
+ neighbor 10.20.20.20 distance 200
+ neighbor 10.20.20.20 update-source loopback0
+ neighbor 10.20.20.20 traffeng
+ neighbor 10.20.20.20 send-community standard extended
+ neighbor 10.22.131.1 remote-as 64513
+ neighbor 10.22.131.1 local-as 64512
+ neighbor 10.22.131.1 address-family ctp
+ neighbor 10.22.131.1 distance 20
+ neighbor 10.22.131.1 send-community standard extended
+ exit
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+server telnet tel
+ security protocol telnet
+ no exec authorization
+ no login authentication
+ login timeout 1410065407
+ vrf v1
+ exit
+!
+!
+end
