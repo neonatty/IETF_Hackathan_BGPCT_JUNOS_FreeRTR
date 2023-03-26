@@ -1,0 +1,133 @@
+hostname freertr-p2
+buggy
+!
+!
+prefix-list p4
+ sequence 10 permit 0.0.0.0/0 ge 0 le 0
+ exit
+!
+prefix-list p6
+ sequence 10 permit ::/0 ge 0 le 0
+ exit
+!
+vrf definition v1
+ rd 1:1
+ label4mode per-prefix
+ label6mode per-prefix
+ exit
+!
+router isis4 1
+ vrf v1
+ net-id 48.2222.0000.2222.00
+ traffeng-id ::
+ is-type both
+ redistribute connected
+ exit
+!
+interface loopback0
+ vrf forwarding v1
+ ipv4 address 10.20.20.20 255.255.255.255
+ ipv6 address 4321::2 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+ mpls ldp4
+ router isis4 1 enable
+ router isis4 1 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet1
+ description p2-asbr22-1
+ vrf forwarding v1
+ ipv4 address 10.2.122.1 255.255.255.0
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 1 enable
+ router isis4 1 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet2
+ description p2-asbr22-2
+ vrf forwarding v1
+ ipv4 address 10.2.222.1 255.255.255.0
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet3
+ description asbr21-p2-1
+ vrf forwarding v1
+ ipv4 address 10.21.12.1 255.255.255.0
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 1 enable
+ router isis4 1 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet4
+ description asbr21-p2-2
+ vrf forwarding v1
+ ipv4 address 10.21.22.1 255.255.255.0
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet5
+ description asbr21-p2-3
+ vrf forwarding v1
+ ipv4 address 10.21.32.1 255.255.255.0
+ no shutdown
+ no log-link-change
+ exit
+!
+router bgp4 1
+ vrf v1
+ local-as 64512
+ router-id 10.20.20.20
+ no safe-ebgp
+ address-family unicast
+ neighbor 10.21.21.21 remote-as 64512
+ neighbor 10.21.21.21 local-as 64512
+ neighbor 10.21.21.21 address-family ctp
+ neighbor 10.21.21.21 distance 200
+ neighbor 10.21.21.21 update-source loopback0
+ neighbor 10.21.21.21 traffeng
+ neighbor 10.21.21.21 route-reflector-client
+ neighbor 10.21.21.21 send-community standard extended
+ neighbor 10.22.22.22 remote-as 64512
+ neighbor 10.22.22.22 local-as 64512
+ neighbor 10.22.22.22 address-family ctp
+ neighbor 10.22.22.22 distance 200
+ neighbor 10.22.22.22 update-source loopback0
+ neighbor 10.22.22.22 traffeng
+ neighbor 10.22.22.22 route-reflector-client
+ neighbor 10.22.22.22 send-community standard extended
+ exit
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+server telnet tel
+ security protocol telnet
+ no exec authorization
+ no login authentication
+ vrf v1
+ exit
+!
+!
+end

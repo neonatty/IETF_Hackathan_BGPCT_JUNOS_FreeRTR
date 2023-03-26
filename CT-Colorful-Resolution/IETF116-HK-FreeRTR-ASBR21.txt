@@ -1,0 +1,286 @@
+hostname freertr-asbr21
+buggy
+!
+!
+access-list ct_v1_v2
+ sequence 10 permit all 10.22.22.22 255.255.255.255 all 10.22.22.22 255.255.255.255 all
+ exit
+!
+prefix-list p4
+ sequence 10 permit 0.0.0.0/0 ge 0 le 0
+ exit
+!
+prefix-list p6
+ sequence 10 permit ::/0 ge 0 le 0
+ exit
+!
+route-policy ibgp-in
+ sequence 10 if extcomm 2562:0:100
+ sequence 20   set vrf v2 ipv4
+ sequence 30   pass
+ sequence 40 enif
+ sequence 50 if extcomm 2562:0:200
+ sequence 60   set vrf v3 ipv4
+ sequence 70   pass
+ sequence 80 enif
+ sequence 90 drop
+ exit
+!
+vrf definition v1
+ rd 1:1
+ label4mode per-prefix
+ label6mode per-prefix
+ exit
+!
+vrf definition v2
+ description Gold TRDB
+ rd 68106:168427528
+ clr4import 100
+ clr6import 100
+ label4mode per-prefix
+ label6mode per-prefix
+ exit
+!
+vrf definition v3
+ description Bronze TRDB
+ rd 68106:168427529
+ clr4import 200
+ clr6import 200
+ label4mode per-prefix
+ label6mode per-prefix
+ exit
+!
+router isis4 1
+ vrf v1
+ net-id 48.1111.0000.1111.00
+ traffeng-id ::
+ is-type both
+ level2 traffeng
+ level1 traffeng
+ redistribute connected
+ exit
+!
+router isis4 2
+ vrf v2
+ net-id 48.1111.0000.2222.00
+ traffeng-id 10.21.1.22
+ is-type both
+ level2 traffeng
+ redistribute connected
+ exit
+!
+router isis4 3
+ vrf v3
+ net-id 48.1111.0000.3333.00
+ traffeng-id 10.21.2.22
+ is-type both
+ level2 traffeng
+ redistribute connected
+ exit
+!
+interface loopback0
+ vrf forwarding v1
+ ipv4 address 10.21.21.21 255.255.255.255
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 1 enable
+ router isis4 1 circuit both
+ router isis4 1 traffeng bandwidth 1000000000
+ no shutdown
+ no log-link-change
+ exit
+!
+interface loopback2
+ vrf forwarding v2
+ ipv4 address 10.121.21.21 255.255.255.255
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 2 enable
+ router isis4 2 circuit both
+ router isis4 2 traffeng bandwidth 1000000000
+ no shutdown
+ no log-link-change
+ exit
+!
+interface loopback3
+ vrf forwarding v3
+ ipv4 address 10.221.21.21 255.255.255.255
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 3 enable
+ router isis4 3 circuit both
+ router isis4 3 traffeng bandwidth 1000000000
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet1
+ description asbr11-asbr21-1
+ vrf forwarding v1
+ ipv4 address 10.11.121.2 255.255.255.0
+ mpls enable
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet2
+ description asbr11-asbr21-2
+ vrf forwarding v1
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet3
+ description asbr21-p2-1
+ vrf forwarding v1
+ ipv4 address 10.21.12.2 255.255.255.0
+ mpls enable
+ mpls ldp4
+ mpls rsvp4
+ router isis4 1 enable
+ router isis4 1 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet4
+ description asbr21-p2-2
+ vrf forwarding v2
+ ipv4 address 10.21.22.2 255.255.255.0
+ mpls enable
+ mpls rsvp4
+ router isis4 2 enable
+ router isis4 2 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface ethernet5
+ description asbr21-p2-3
+ vrf forwarding v3
+ ipv4 address 10.21.32.2 255.255.255.0
+ mpls enable
+ mpls rsvp4
+ router isis4 3 enable
+ router isis4 3 circuit both
+ no shutdown
+ no log-link-change
+ exit
+!
+interface tunnel1
+ description lsp_asbr21_asbr22
+ tunnel vrf v1
+ tunnel source loopback0
+ tunnel destination 10.22.22.22
+ tunnel mode p2pte
+ vrf forwarding v2
+ ipv4 address 10.121.121.121 255.255.255.0
+ mpls enable
+ no shutdown
+ no log-link-change
+ exit
+!
+interface tunnel2
+ description lsp_asbr21_asbr22
+ tunnel vrf v1
+ tunnel source loopback0
+ tunnel destination 10.22.22.22
+ tunnel mode p2pte
+ vrf forwarding v3
+ ipv4 address 10.221.221.221 255.255.255.0
+ mpls enable
+ no shutdown
+ no log-link-change
+ exit
+!
+router bgp4 1
+ vrf v1
+ local-as 64512
+ router-id 10.21.21.21
+ no safe-ebgp
+ address-family unicast
+ nexthop recursion 3
+ !
+ neighbor 10.11.121.1 remote-as 64511
+ neighbor 10.11.121.1 local-as 64512
+ neighbor 10.11.121.1 address-family ctp
+ neighbor 10.11.121.1 distance 20
+ neighbor 10.11.121.1 send-community standard extended
+ neighbor 10.11.121.1 route-policy-in ibgp-in
+ !
+ neighbor 10.20.20.20 remote-as 64512
+ neighbor 10.20.20.20 local-as 64512
+ neighbor 10.20.20.20 address-family ctp
+ neighbor 10.20.20.20 distance 200
+ neighbor 10.20.20.20 update-source loopback0
+ neighbor 10.20.20.20 traffeng
+ neighbor 10.20.20.20 send-community standard extended
+ neighbor 10.20.20.20 route-policy-in ibgp-in
+ !
+ afi-clr v2 enable
+ afi-clr v2 redistribute bgp4 1
+ !
+ afi-clr v3 enable
+ afi-clr v3 redistribute bgp4 1
+ !
+ !
+ exit
+!
+console0
+ no exec authorization
+ no login authentication
+ exit
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+ipv4 route v2 10.22.22.22 255.255.255.255 10.121.121.122
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+ipv4 route v3 10.22.22.22 255.255.255.255 10.221.221.222
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+server telnet tel
+ security protocol telnet
+ no exec authorization
+ no login authentication
+ vrf v1
+ exit
+!
+!
+end
